@@ -1,1 +1,1 @@
-./helm/carshop-argocd/charts
+helm/*/charts
