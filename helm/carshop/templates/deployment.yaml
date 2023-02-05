@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "carshop.fullname" . }}
+  labels:
+    {{- include "carshop.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "carshop.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "carshop.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "carshop.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: "DB_HOST"
+            value: "{{ .Values.db.host }}"
+          - name: "DB_PORT"
+            value: "{{ .Values.db.port }}"
+          - name: "DB_USERNAME"
+            value: "{{ .Values.db.username }}"
+          - name: "DB_PASSWORD"
+            value: "{{ .Values.db.password }}"
+          - name: "DB_NAME"
+            value: "{{ .Values.db.name }}"
+          - name: "PORT"
+            value: "{{ .Values.service.port }}"
+          - name: "DB_MIN_POOLSIZE"
+            value: "{{ .Values.db.minPoolSize }}"
+          - name: "DB_MAX_POOLSIZE"
+            value: "{{ .Values.db.maxPoolSize }}"
+          - name: "JWTSECRET_KEY"
+            value: "{{ .Values.jwtSecretKey }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
